@@ -1,0 +1,21 @@
+{
+  "client_id": "string",
+  "industry": "string",
+  "winning_hooks": [
+    {
+      "learning": "string",
+      "source": "string",
+      "evidence": "string",
+      "impact": "string",
+      "created_at": "ISO-8601 datetime"
+    }
+  ],
+  "winning_ads": [],
+  "content_themes": [],
+  "frequent_objections": [],
+  "sales_bottlenecks": [],
+  "audience_learnings": [],
+  "offer_learnings": [],
+  "landing_learnings": [],
+  "decisions": []
+}
