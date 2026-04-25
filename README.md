@@ -36,6 +36,8 @@ The goal is not to produce generic marketing advice. The goal is to analyze, int
 ├── templates/
 ├── scripts/
 ├── schemas/
+├── examples/
+├── tests/
 ├── memory/
 └── requirements.txt
 ```
@@ -62,6 +64,10 @@ Review these WhatsApp conversations and tell me where leads are cooling down.
 Audit this landing page copy and tell me what to change to improve conversion.
 ```
 
+```txt
+Use the creative brief template to turn these campaign learnings into 3 ad concepts and 2 reel scripts.
+```
+
 ## How to run scripts locally
 
 Install dependencies:
@@ -82,6 +88,12 @@ Analyze organic content:
 python scripts/analyze_content_csv.py examples/sample_content_report.csv --output content_analysis.json
 ```
 
+Compare two Meta Ads periods:
+
+```bash
+python scripts/compare_meta_periods.py examples/sample_meta_ads_export.csv examples/sample_meta_ads_export.csv --output meta_ads_period_comparison.json
+```
+
 Save a reusable learning:
 
 ```bash
@@ -92,6 +104,33 @@ python scripts/update_learning_memory.py \
   --source "WhatsApp analysis" \
   --evidence "Repeated in multiple conversations"
 ```
+
+Run tests:
+
+```bash
+pytest
+```
+
+## Current MVP contents
+
+### Scripts
+
+- `scripts/analyze_meta_ads.py`
+- `scripts/analyze_content_csv.py`
+- `scripts/compare_meta_periods.py`
+- `scripts/update_learning_memory.py`
+
+### Templates
+
+- `templates/meta-ads-weekly-report.md`
+- `templates/content-insights-report.md`
+- `templates/client-executive-summary.md`
+- `templates/creative-brief.md`
+
+### Example data
+
+- `examples/sample_meta_ads_export.csv`
+- `examples/sample_content_report.csv`
 
 ## MVP limitations
 
@@ -120,6 +159,8 @@ Those should be added in later phases.
 - Organic content script
 - Learning memory script
 - Basic report templates
+- Example CSV files
+- Basic tests
 
 ### Phase 2: Advanced analysis
 
