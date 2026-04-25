@@ -3,28 +3,16 @@
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import pandas as pd
 
+from utils.column_mapping import META_ADS_COLUMN_ALIASES as COLUMN_ALIASES
+from utils.metrics import calculate_metrics  # noqa: F401
 
-COLUMN_ALIASES = {
-    "campaign": ["campaign", "campaign name", "nombre de la campaña", "campaña"],
-    "adset": ["ad set", "ad set name", "conjunto de anuncios", "grupo de anuncios", "adset"],
-    "ad": ["ad", "ad name", "anuncio", "nombre del anuncio"],
-    "spend": ["amount spent", "spend", "importe gastado", "gasto", "inversión", "inversion"],
-    "impressions": ["impressions", "impresiones"],
-    "reach": ["reach", "alcance"],
-    "clicks": ["link clicks", "clicks", "clics en el enlace", "clics", "clics únicos"],
-    "leads": ["leads", "resultados", "clientes potenciales", "prospectos", "contacts"],
-    "conversions": ["conversions", "compras", "purchases", "ventas", "conversiones"],
-    "revenue": ["purchase conversion value", "revenue", "valor de conversión", "ingresos", "ventas valor"],
-    "frequency": ["frequency", "frecuencia"],
-    "ctr": ["ctr", "ctr link click-through rate", "ctr único", "porcentaje de clics"],
-    "cpc": ["cpc", "cost per link click", "costo por clic", "coste por clic"],
-    "cpm": ["cpm", "cost per 1,000 impressions", "costo por mil impresiones", "coste por mil impresiones"],
-    "cpa": ["cost per result", "costo por resultado", "coste por resultado", "cpa", "cpl"],
-}
+MINIMUM_COLUMNS = {"spend", "impressions", "clicks", "leads", "conversions"}
+SPEND_ALIASES = COLUMN_ALIASES["spend"]
 
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -41,36 +29,36 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=rename_map)
 
 
-def safe_numeric(series: pd.Series) -> pd.Series:
-    if series.dtype == object:
-        series = series.astype(str).str.replace("$", "", regex=False).str.replace(",", "", regex=False).str.replace("%", "", regex=False)
-    return pd.to_numeric(series, errors="coerce").fillna(0)
+def validate_dataframe(df: pd.DataFrame) -> None:
+    """Validate that the normalized Meta Ads dataframe has enough data to analyze."""
+    if df.empty:
+        print("ERROR: The file has no rows. Nothing to analyze.", file=sys.stderr)
+        sys.exit(1)
 
+    recognized = MINIMUM_COLUMNS.intersection(set(df.columns))
+    if not recognized:
+        print("ERROR: No recognized columns found after normalization.", file=sys.stderr)
+        print(f"       Columns in file: {list(df.columns)}", file=sys.stderr)
+        print("       At least one of these is required: spend, impressions, clicks, leads, conversions", file=sys.stderr)
+        print("       Check that you are uploading a Meta Ads export.", file=sys.stderr)
+        sys.exit(1)
 
-def calculate_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    for col in ["spend", "impressions", "reach", "clicks", "leads", "conversions", "revenue", "frequency", "ctr", "cpc", "cpm", "cpa"]:
-        if col in df.columns:
-            df[col] = safe_numeric(df[col])
+    if "spend" not in df.columns:
+        print("ERROR: Column 'spend' not found. This column is required for all analysis.", file=sys.stderr)
+        print(f"       Recognized aliases: {', '.join(SPEND_ALIASES)}", file=sys.stderr)
+        print("       Check your export settings in Meta Ads Manager.", file=sys.stderr)
+        sys.exit(1)
 
-    if "ctr" not in df.columns and {"clicks", "impressions"}.issubset(df.columns):
-        df["ctr"] = (df["clicks"] / df["impressions"].replace(0, pd.NA)).fillna(0) * 100
+    spend_numeric = pd.to_numeric(
+        df["spend"].astype(str).str.replace("$", "", regex=False).str.replace(",", "", regex=False).str.replace("%", "", regex=False),
+        errors="coerce"
+    ).fillna(0)
 
-    if "cpc" not in df.columns and {"spend", "clicks"}.issubset(df.columns):
-        df["cpc"] = (df["spend"] / df["clicks"].replace(0, pd.NA)).fillna(0)
-
-    if "cpm" not in df.columns and {"spend", "impressions"}.issubset(df.columns):
-        df["cpm"] = (df["spend"] / df["impressions"].replace(0, pd.NA)).fillna(0) * 1000
-
-    if "cpa" not in df.columns:
-        if {"spend", "leads"}.issubset(df.columns):
-            df["cpa"] = (df["spend"] / df["leads"].replace(0, pd.NA)).fillna(0)
-        elif {"spend", "conversions"}.issubset(df.columns):
-            df["cpa"] = (df["spend"] / df["conversions"].replace(0, pd.NA)).fillna(0)
-
-    if "roas" not in df.columns and {"revenue", "spend"}.issubset(df.columns):
-        df["roas"] = (df["revenue"] / df["spend"].replace(0, pd.NA)).fillna(0)
-
-    return df
+    if spend_numeric.sum() == 0:
+        print(
+            "WARNING: Column 'spend' found but total spend is 0. Analysis will proceed but results may not be meaningful.",
+            file=sys.stderr,
+        )
 
 
 def classify_row(row: pd.Series, benchmarks: dict) -> dict:
@@ -151,9 +139,24 @@ def summarize(df: pd.DataFrame) -> dict:
 
 
 def read_table(input_path: Path) -> pd.DataFrame:
-    if input_path.suffix.lower() in [".xlsx", ".xls"]:
-        return pd.read_excel(input_path)
-    return pd.read_csv(input_path)
+    if not input_path.exists():
+        print(f"ERROR: File not found: '{input_path}'", file=sys.stderr)
+        sys.exit(1)
+
+    if input_path.suffix.lower() not in [".csv", ".xlsx", ".xls"]:
+        print(f"ERROR: Unsupported file format '{input_path.suffix}'. Use CSV or XLSX.", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        if input_path.suffix.lower() in [".xlsx", ".xls"]:
+            return pd.read_excel(input_path)
+        return pd.read_csv(input_path)
+    except pd.errors.EmptyDataError:
+        print("ERROR: The file is empty or cannot be parsed as a table.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        print(f"ERROR: Could not read file '{input_path}': {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
@@ -170,6 +173,7 @@ def main() -> None:
 
     df = read_table(Path(args.input_file))
     df = normalize_columns(df)
+    validate_dataframe(df)
     df = calculate_metrics(df)
 
     benchmarks = {
