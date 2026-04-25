@@ -7,23 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-
-COLUMN_ALIASES = {
-    "date": ["date", "fecha", "published_at", "publication date"],
-    "platform": ["platform", "plataforma"],
-    "format": ["format", "formato", "content type", "tipo", "tipo de contenido"],
-    "topic": ["topic", "tema", "pillar", "pilar", "categoria", "category"],
-    "hook": ["hook", "gancho", "headline", "titular", "first line"],
-    "reach": ["reach", "alcance"],
-    "views": ["views", "reproducciones", "plays", "visualizaciones"],
-    "likes": ["likes", "me gusta", "reactions", "reacciones"],
-    "comments": ["comments", "comentarios"],
-    "shares": ["shares", "compartidos", "envios", "sends"],
-    "saves": ["saves", "guardados"],
-    "messages": ["messages", "mensajes", "dms", "dm", "whatsapp"],
-    "leads": ["leads", "prospectos", "clientes potenciales"],
-    "clicks": ["clicks", "clics", "link clicks", "clics en enlace"],
-}
+from utils.column_mapping import CONTENT_COLUMN_ALIASES as COLUMN_ALIASES
+from utils.metrics import numeric
 
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -38,13 +23,6 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
                 break
 
     return df.rename(columns=rename_map)
-
-
-def numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
-    for col in cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-    return df
 
 
 def add_scores(df: pd.DataFrame) -> pd.DataFrame:
