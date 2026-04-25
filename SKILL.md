@@ -1,6 +1,7 @@
 ---
 name: digital-marketing-os
-description: Use this skill when the user needs senior digital marketing analysis, Meta Ads optimization, funnel/CAC/LTV diagnosis, organic content intelligence, WhatsApp/DM sales analysis, landing page audits, client reporting, creative direction, or reusable marketing learnings based on real business data, CSV files, reports, screenshots, briefs, web copy, or conversation exports.
+description: Analyze Meta Ads, funnels, content, WhatsApp sales, landings, reports, and creative decisions from real marketing data.
+dependencies: python>=3.8, pandas>=2.0.0, openpyxl>=3.1.0
 ---
 
 # Digital Marketing OS
@@ -39,6 +40,8 @@ Prioritize recommendations by business impact:
 ## Meta Ads Intelligence
 
 When analyzing Meta Ads exports, use `scripts/analyze_meta_ads.py` when a CSV or XLSX file is available.
+
+After generating JSON with `scripts/analyze_meta_ads.py`, use `scripts/generate_report.py` to create a Markdown report when a client-ready or internal report is requested.
 
 Read `knowledge/meta-ads-kpi-guide.md` before making detailed Meta Ads recommendations.
 
@@ -103,6 +106,8 @@ When analyzing organic content, identify:
 - ads that should become content
 
 Use `scripts/analyze_content_csv.py` when a CSV or XLSX report is available.
+
+After generating JSON with `scripts/analyze_content_csv.py`, use `scripts/generate_report.py` to create a Markdown report when useful.
 
 ## WhatsApp and DM Sales Analysis
 
