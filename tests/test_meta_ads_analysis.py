@@ -2,11 +2,12 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT / "scripts"))
 
-from analyze_meta_ads import normalize_columns, calculate_metrics, classify_row
+from analyze_meta_ads import normalize_columns, calculate_metrics, classify_row, validate_dataframe
 
 
 def test_normalize_columns_spanish_names():
@@ -52,3 +53,20 @@ def test_classify_strong_row():
     analysis = classify_row(row, benchmarks)
     assert analysis["priority"] == "high"
     assert analysis["decision"] in ["scale_carefully", "maintain_or_scale"]
+
+
+def test_validate_empty_dataframe_raises():
+    with pytest.raises(SystemExit):
+        validate_dataframe(pd.DataFrame())
+
+
+def test_validate_no_recognized_columns_raises():
+    df = pd.DataFrame({"fecha": ["2026-01-01"], "nombre": ["A"]})
+    with pytest.raises(SystemExit):
+        validate_dataframe(df)
+
+
+def test_validate_missing_spend_raises():
+    df = pd.DataFrame({"impressions": [1000], "clicks": [20]})
+    with pytest.raises(SystemExit):
+        validate_dataframe(df)
